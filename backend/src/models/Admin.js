@@ -49,7 +49,12 @@ const adminSchema = new mongoose.Schema({
   ],
 
   // ── Match records ──
-  matchedUsers: [matchedUserSchema],
+  matchedUsers: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      roommate: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }
+  ],
 
   createdAt: {
     type: Date,
