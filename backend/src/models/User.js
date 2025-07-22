@@ -111,6 +111,9 @@ const userSchema = new mongoose.Schema({
       preferredFloor: Number
     }
   },
+  refreshToken: {
+    type: String,
+  },
 
   createdAt: {
     type: Date,
