@@ -8,7 +8,6 @@ import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (userId) =>{
     try {
-        console.log("shuru to hua")
         const user = await User.findById(userId)
         if(!user){
             console.log("user ni mila yrr")
@@ -28,46 +27,52 @@ const generateAccessAndRefreshTokens = async (userId) =>{
 
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password, role } = req.body;
-
-  if ([username, email, password, role].some((field) => !field || field.trim() === "")) {
-    throw new ApiError(400, "All fields are required.");
-  }
-
-  const existedUser = await User.findOne({
-    $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
-  });
-
-  if (existedUser) {
-    throw new ApiError(409, "User already exists");
-  }
-
-  const admin = await Admin.findOne({});
-  if (!admin || !admin.approvedUsers.includes(email.toLowerCase())) {
-    throw new ApiError(403, "Your email is not in admin list");
-  }
-
-  const user = await User.create({
-    username: username.toLowerCase(),
-    email: email.toLowerCase(),
-    password,
-    role: role || "user",
-  });
-
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
-
-  user.refreshToken = refreshToken;
-  await user.save({ validateBeforeSave: false });
-
-  const createdUser = await User.findById(user._id).select("-password -refreshToken");
-
-  return res.status(201).json(
-    new ApiResponse(201, {
-      user: createdUser,
-      accessToken
-    }, "User registered successfully")
-  );
-});
+    const { name, email, password } = req.body;
+  
+    if ([name, email, password].some((field) => !field || field.trim() === "")) {
+      throw new ApiError(400, "All fields are required.");
+    }
+  
+    const existedUser = await User.findOne({
+      $or: [{ name: name.toLowerCase() }, { email: email.toLowerCase() }]
+    });
+  
+    if (existedUser) {
+      throw new ApiError(409, "User already exists");
+    }
+  
+    const admin = await Admin.findOne({});
+    if (!admin || !admin.unapprovedUsers.includes(email.toLowerCase())) {
+      throw new ApiError(403, "Your email is not in admin list");
+    }
+  
+    const user = await User.create({
+      name: name.toLowerCase(),
+      email: email.toLowerCase(),
+      password,
+    });
+  
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+  
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+  
+    // 🛠️ Update admin: remove from unapproved, add to approved
+    admin.unapprovedUsers = admin.unapprovedUsers.filter(e => e !== email.toLowerCase());
+    if (!admin.approvedUsers.includes(email.toLowerCase())) {
+      admin.approvedUsers.push(email.toLowerCase());
+    }
+    await admin.save();
+  
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+  
+    return res.status(201).json(
+      new ApiResponse(201, {
+        user: createdUser,
+        accessToken
+      }, "User registered successfully")
+    );
+  });  
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;

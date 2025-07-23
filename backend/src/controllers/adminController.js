@@ -1,11 +1,13 @@
+import bcrypt from "bcrypt";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import Admin from "../models/Admin.js";
 import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 export const generateAccessAndRefreshTokens = async (userId) =>{
   try {
-      const user = await User.findById(userId)
+      const user = await Admin.findById(userId)
       if(!user){
           console.log("user ni mila yrr")
       }
@@ -17,9 +19,42 @@ export const generateAccessAndRefreshTokens = async (userId) =>{
       return { accessToken, refreshToken }
 
   } catch (error) {
-      throw new ApiError (500 , "Error during generating tokens")
+      throw new ApiError (500 ,error, "Error during generating tokens")
   }
 }
+
+export const adminSignup = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    throw new ApiError(400, "Name, email, and password are required.");
+  }
+
+  const existingAdmin = await Admin.findOne({ email: email.toLowerCase() });
+  if (existingAdmin) {
+    throw new ApiError(409, "Admin already exists with this email.");
+  }
+
+  const admin = await Admin.create({
+    name: name.trim(),
+    email: email.toLowerCase(),
+    password
+  });
+
+  // ── (Optional) Generate tokens ──
+  // const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(admin._id);
+
+  return res.status(201).json(
+    new ApiResponse(201, {
+      admin: {
+        _id: admin._id,
+        name: admin.name,
+        email: admin.email
+      },
+      // accessToken
+    }, "Admin registered successfully")
+  );
+});
 
 
 export const loginAdmin = asyncHandler(async (req, res) => {
@@ -31,10 +66,15 @@ export const loginAdmin = asyncHandler(async (req, res) => {
 
   const admin = await Admin.findOne({ email }).select("+password");
 
+  console.log("Entered password:", password);
+console.log("Stored hash:", admin.password);
+console.log("Password match:", await bcrypt.compare(password, admin.password));
+
+
   if (!admin || !(await admin.comparePassword(password))) {
     throw new ApiError(401, "Invalid email or password");
   }
-
+console.log("admin id : ", admin._id);
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(admin._id);
 
   admin.refreshToken = refreshToken;
