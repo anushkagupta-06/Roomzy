@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const matchedUserSchema = new mongoose.Schema({
   user: {
@@ -41,6 +42,13 @@ const adminSchema = new mongoose.Schema({
   },
 
   // ── List of approved user emails ──
+  unapprovedUsers: [
+    {
+      type: String,
+      lowercase: true
+    }
+  ],
+
   approvedUsers: [
     {
       type: String,
@@ -76,6 +84,22 @@ adminSchema.pre("save", async function (next) {
 // ── Compare password ──
 adminSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+}
+
+adminSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    { _id: this._id, role: this.role },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: "1h" }
+  );
+};
+
+adminSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    { _id: this._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
 const Admin = mongoose.model("Admin", adminSchema);
