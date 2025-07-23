@@ -1,6 +1,6 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import Admin from "../models/Admin.js";
-import ApiError from "../utils/ApiError.js";
+import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 
 export const generateAccessAndRefreshTokens = async (userId) =>{
