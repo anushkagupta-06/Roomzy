@@ -5,7 +5,6 @@ import RoomzyLogo from '../RoomzyLogo';
 
 const Sidebar = ({ onMenuClick }) => {
     const menuItems = [
-        { name: 'Dashboard', icon: HomeIcon },
         { name: 'Edit Profile', icon: UserCircleIcon },
         { name: 'Find a Match', icon: UserGroupIcon },
         { name: 'Chats', icon: ChatBubbleLeftRightIcon },
