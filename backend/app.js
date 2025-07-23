@@ -2,14 +2,17 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import userRoutes from "./routes/userRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
 
-import { notFound } from "./middleware/notFound.js";
-import { apiErrorHandler } from "./middleware/apiErrorHandler.js";
+import connectDB from "./src/db/db.js";
 
 dotenv.config();
 const app = express();
+
+connectDB();
+
+const PORT = process.env.PORT || 5000;
 
 // ── Middleware ──
 app.use(cors());
@@ -24,10 +27,9 @@ app.get("/", (req, res) => {
   res.send("Welcome to the Roomzy API 🚀");
 });
 
-// ── 404 Handler ──
-app.use(notFound);
 
-// ── Central Error Handler ──
-app.use(apiErrorHandler);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
 
 export default app;
