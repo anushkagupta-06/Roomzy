@@ -2,19 +2,17 @@ import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import Profile from '../Profile/Profile';
 import Matching from '../Matching/Matching';
+import { ProfileProvider } from '../context/ProfileContext';
 
 function UserDb() {
   const [activeComponent, setActiveComponent] = useState('Find a Match');
 
   const renderComponent = () => {
     switch (activeComponent) {
-      case 'Dashboard':
-        // For this example, Dashboard will show the matching component
-        return <Matching />;
       case 'Edit Profile':
         return <Profile />;
       case 'Find a Match':
-        return <Matching />;
+        return <Matching  />;
       case 'Chats':
         return <Chat />;
       default:
@@ -23,12 +21,14 @@ function UserDb() {
   };
 
   return (
+    <ProfileProvider >
     <div className="flex h-screen bg-background font-sans">
       <Sidebar onMenuClick={setActiveComponent} />
       <main className="flex-1 overflow-y-auto">
         {renderComponent()}
       </main>
     </div>
+    </ProfileProvider>
   );
 }
 

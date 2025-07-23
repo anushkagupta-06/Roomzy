@@ -1,6 +1,9 @@
-import React from 'react';
+import React from 'react'
+import { useProfile } from '../context/ProfileContext';
 
 const Profile = () => {
+
+    const { bio } = useProfile()
     return (
         <div className="p-8">
         <h1 className="text-3xl font-bold text-text-primary mb-8">Edit Your Profile</h1>
@@ -22,7 +25,8 @@ const Profile = () => {
                 id="bio"
                 rows="4"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2"
-                defaultValue="Lover of quiet mornings, good books, and clean spaces. I enjoy occasional outings but also value my alone time. Looking for a roommate who is respectful and communicative."
+                defaultValue={bio || "No bio yet. Please take the AI survey."}
+                readOnly = {true}
             ></textarea>
             </div>
             <div>
