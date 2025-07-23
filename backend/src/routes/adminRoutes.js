@@ -1,5 +1,5 @@
 import express from "express";
-import asyncHandler from "../middleware/asyncHandler.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
 import { loginAdmin, getApprovedUsers, getMatchedUsers } from "../controllers/adminController.js";
 
 const router = express.Router();

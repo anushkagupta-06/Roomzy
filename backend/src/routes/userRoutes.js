@@ -1,10 +1,10 @@
 import express from "express";
-import asyncHandler from "../middleware/asyncHandler.js";
-import { loginUser, signupUser } from "../controllers/userController.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import { loginUser, registerUser } from "../controllers/userController.js";
 
 const router = express.Router();
 
-router.post("/signup", asyncHandler(signupUser));
+router.post("/signup", asyncHandler(registerUser));
 
 router.post("/login", asyncHandler(loginUser));
 

@@ -1,9 +1,26 @@
-import asyncHandler from "../middleware/asyncHandler.js";
-import Admin from "../models/admin.model.js";
-import User from "../models/user.model.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import Admin from "../models/Admin.js";
 import ApiError from "../utils/ApiError.js";
-import ApiResponse from "../utils/ApiResponse.js";
-import { generateAccessAndRefreshTokens } from "../utils/generateTokens.js";
+import {ApiResponse} from "../utils/ApiResponse.js";
+
+export const generateAccessAndRefreshTokens = async (userId) =>{
+  try {
+      const user = await User.findById(userId)
+      if(!user){
+          console.log("user ni mila yrr")
+      }
+      const accessToken = user.generateAccessToken()
+      const refreshToken = user.generateRefreshToken()
+
+      user.refreshToken = refreshToken
+      await user.save ({validateBeforeSave : false})
+      return { accessToken, refreshToken }
+
+  } catch (error) {
+      throw new ApiError (500 , "Error during generating tokens")
+  }
+}
+
 
 export const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -64,6 +81,53 @@ export const getMatchedUsers = asyncHandler(async (req, res) => {
       email: pair.roommate?.email || "Unknown",
     }
   }));
+
+  const refreshAccessToken = asyncHandler (async (req, res) => {
+      const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+  
+      if(!incomingRefreshToken){
+          throw new ApiError(401,"unauthorised request")
+      }
+      try {
+          const decodedToken = jwt.verify(
+              incomingRefreshToken,
+              process.env.REFRESH_TOKEN_SECRET
+          )
+      
+          const user = await User.findById(decodedToken?._id)
+      
+          if (!user) {
+              throw new ApiError(401, "Invalid refresh token")
+          }
+      
+          if (incomingRefreshToken !== user?.refreshToken) {
+              throw new ApiError(401, "Refresh token is expired or used")
+              
+          }
+      
+          const options = {
+              httpOnly: true,
+              secure: true
+          }
+      
+          const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+      
+          return res
+          .status(200)
+          .cookie("accessToken", accessToken, options)
+          .cookie("refreshToken", newRefreshToken, options)
+          .json(
+              new ApiResponse(
+                  200, 
+                  {accessToken, refreshToken: newRefreshToken},
+                  "Access token refreshed"
+              )
+          )
+      } catch (error) {
+          throw new ApiError(401, error?.message || "Invalid refresh token")
+      }
+  
+  })
 
   res.status(200).json(
     new ApiResponse(200, matches, "Matched roommate pairs retrieved")
