@@ -5,6 +5,8 @@ import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
+import cloudinary from "../config/cloudinary.js";
+
 
 const generateAccessAndRefreshTokens = async (userId) =>{
     try {
@@ -186,6 +188,46 @@ const changePassword = asyncHandler (async (req,res) =>{
 
     return res.status(200).json(new ApiResponse(200,{},"Password changed successfully"))
 })
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { age } = req.body;
+
+  // ✅ Validate age
+  if (age && (age < 18 || age > 99)) {
+    throw new ApiError(400, "Age must be between 18 and 99.");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  // ✅ Only upload avatar if a file is provided
+  if (req.file) {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "avatars",
+      width: 300,
+      crop: "scale",
+    });
+    user.avatar = result.secure_url;
+  }
+
+  // ✅ Set age if provided
+  if (age) {
+    user.age = age;
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      avatar: user.avatar,
+      age: user.age,
+    }, "Profile updated successfully")
+  );
+});
+
 
 export {
     registerUser,
