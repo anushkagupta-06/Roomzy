@@ -5,14 +5,24 @@ import {registerUser,
     logoutUser,
     refreshAccessToken,
     getUser,
-    changePassword} from "../controllers/userController.js";
+    changePassword,
+    updateProfile,
+    getMatch} from "../controllers/userController.js";
 import {verifyJWT} from "../middlewares/auth.js";
+import upload from "../utils/multer.js"
 
 const router = express.Router();
 
 router.post("/signup", asyncHandler(registerUser));
 
 router.post("/login", asyncHandler(loginUser));
+
+router.patch(
+  "/profile/update",
+  verifyJWT,
+  upload.single("avatar"),
+  updateProfile
+);
 
 router.route("/logout").post(
     verifyJWT, 
@@ -26,6 +36,10 @@ router.route("/change-password").patch(
 router.route("/getuser").get(
     verifyJWT, 
     getUser
+)
+router.route("match").get(
+    verifyJWT,
+    getMatch
 )
 
 export default router;

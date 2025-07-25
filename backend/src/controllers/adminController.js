@@ -1,6 +1,9 @@
 import bcrypt from "bcrypt";
-import {asyncHandler} from "../utils/asyncHandler.js";
 import Admin from "../models/Admin.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
+
+import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
@@ -171,5 +174,97 @@ export const getMatchedUsers = asyncHandler(async (req, res) => {
 
   res.status(200).json(
     new ApiResponse(200, matches, "Matched roommate pairs retrieved")
+  );
+});
+
+export const addMatchedPairByEmail = asyncHandler(async (req, res) => {
+  // if (req.admin.role !== "admin") {
+  //   throw new ApiError(403, "Admin access required");
+  // }
+
+  const { userEmail, roommateEmail } = req.body;
+
+  if (!userEmail || !roommateEmail) {
+    throw new ApiError(400, "Both emails are required");
+  }
+
+  const [user, roommate] = await Promise.all([
+    User.findOne({ email: userEmail }),
+    User.findOne({ email: roommateEmail })
+  ]);
+
+  if (!user || !roommate) {
+    throw new ApiError(404, "One or both users not found");
+  }
+
+  const admin = await Admin.findOne({});
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  const alreadyMatched = admin.matchedUsers.some(
+    (pair) =>
+      (pair.user.toString() === user._id.toString() &&
+       pair.roommate.toString() === roommate._id.toString()) ||
+      (pair.user.toString() === roommate._id.toString() &&
+       pair.roommate.toString() === user._id.toString())
+  );
+
+  if (alreadyMatched) {
+    throw new ApiError(400, "These users are already matched");
+  }
+
+  admin.matchedUsers.push({ user: user._id, roommate: roommate._id });
+  await admin.save();
+
+  res.status(200).json(
+    new ApiResponse(200, {user, roommate}, "Matched pair added successfully")
+  );
+});
+
+
+export const removeMatchedPairByUser = asyncHandler(async (req, res) => {
+  // if (req.user.role !== "admin") {
+  //   throw new ApiError(403, "Admin access required");
+  // }
+
+  const { identifier } = req.params; // could be userId or email
+
+  if (!identifier) {
+    throw new ApiError(400, "User identifier is required");
+  }
+
+  let user;
+  if (mongoose.Types.ObjectId.isValid(identifier)) {
+    user = await User.findById(identifier);
+  } else {
+    user = await User.findOne({ email: identifier });
+  }
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const admin = await Admin.findOne({});
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  const originalLength = admin.matchedUsers.length;
+
+  admin.matchedUsers = admin.matchedUsers.filter(
+    (pair) =>
+      pair.user.toString() !== user._id.toString() &&
+      pair.roommate.toString() !== user._id.toString()
+  );
+
+  if (admin.matchedUsers.length === originalLength) {
+    throw new ApiError(404, "No matched pair found for this user");
+  }
+
+  await admin.save();
+
+  res.status(200).json(
+    new ApiResponse(200, null, "Matched pair removed successfully")
   );
 });
