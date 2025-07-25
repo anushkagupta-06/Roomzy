@@ -6,7 +6,8 @@ import {registerUser,
     refreshAccessToken,
     getUser,
     changePassword,
-    updateProfile} from "../controllers/userController.js";
+    updateProfile,
+    getMatch} from "../controllers/userController.js";
 import {verifyJWT} from "../middlewares/auth.js";
 import upload from "../utils/multer.js"
 
@@ -35,6 +36,10 @@ router.route("/change-password").patch(
 router.route("/getuser").get(
     verifyJWT, 
     getUser
+)
+router.route("match").get(
+    verifyJWT,
+    getMatch
 )
 
 export default router;
