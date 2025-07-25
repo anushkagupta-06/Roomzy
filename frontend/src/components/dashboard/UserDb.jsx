@@ -3,6 +3,7 @@ import Sidebar from '../Sidebar/Sidebar';
 import Profile from '../Profile/Profile';
 import Matching from '../Matching/Matching';
 import { ProfileProvider } from '../context/ProfileContext';
+import Chat from '../chat/Chat';
 
 function UserDb() {
   const [activeComponent, setActiveComponent] = useState('Find a Match');

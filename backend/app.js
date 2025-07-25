@@ -7,6 +7,9 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 
 import connectDB from "./src/db/db.js";
 
+import http from "http";
+import { initSocket } from "./socket/chatSocket.js";
+
 dotenv.config();
 const app = express();
 
@@ -27,9 +30,11 @@ app.get("/", (req, res) => {
   res.send("Welcome to the Roomzy API 🚀");
 });
 
+const server = http.createServer(app);
+const io = initSocket(server);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+server.listen(process.env.PORT || 3000, () => {
+  console.log(`🚀 Server running on port ${process.env.PORT}`);
 });
 
 export default app;
