@@ -97,6 +97,12 @@ const userSchema = new mongoose.Schema({
     explanation: String
   },
 
+  surveyResult: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }
+  ],
+
   // ─── Room Assignment ───
   roomAssignment: {
     roomId: {

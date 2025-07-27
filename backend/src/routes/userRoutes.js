@@ -7,7 +7,9 @@ import {registerUser,
     getUser,
     changePassword,
     updateProfile,
-    getMatch} from "../controllers/userController.js";
+    getMatch,
+    getUserMatch,
+    submitComplaint} from "../controllers/userController.js";
 import {verifyJWT} from "../middlewares/auth.js";
 import upload from "../utils/multer.js"
 
@@ -37,9 +39,17 @@ router.route("/getuser").get(
     verifyJWT, 
     getUser
 )
-router.route("match").get(
+router.route("/match").get(
+    verifyJWT,
+    getUserMatch
+)
+router.route("/match/admin").get(
     verifyJWT,
     getMatch
+)
+router.route("/complaint").get(
+    verifyJWT,
+    submitComplaint
 )
 
 export default router;

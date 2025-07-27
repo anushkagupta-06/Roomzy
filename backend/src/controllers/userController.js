@@ -67,13 +67,24 @@ const registerUser = asyncHandler(async (req, res) => {
     await admin.save();
   
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // true in prod
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    };
   
-    return res.status(201).json(
-      new ApiResponse(201, {
-        user: createdUser,
-        accessToken
-      }, "User registered successfully")
-    );
+    return res
+  .cookie("accessToken", accessToken, cookieOptions)
+  .cookie("refreshToken", refreshToken, cookieOptions)
+  .status(201)
+  .json(
+    new ApiResponse(201, {
+      user: createdUser,
+      accessToken
+    }, "User registered successfully")
+  );
   });  
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -91,7 +102,18 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const sanitizedUser = await User.findById(user._id).select("-password -refreshToken");
 
-  res.status(200).json(
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // true in prod
+    sameSite: 'Lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  };
+
+  return res
+  .cookie("accessToken", accessToken, cookieOptions)
+  .cookie("refreshToken", refreshToken, cookieOptions)
+  .status(200)
+  .json(
     new ApiResponse(200, {
       user: sanitizedUser,
       accessToken
@@ -121,7 +143,7 @@ const logoutUser = asyncHandler (async (req, res)=> {
 })
 
 const refreshAccessToken = asyncHandler (async (req, res) => {
-    const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookie?.refreshToken || req.body.refreshToken
 
     if(!incomingRefreshToken){
         throw new ApiError(401,"unauthorised request")
@@ -228,7 +250,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   );
 });
 
-const getMatch = asyncHandler(async (req, res) => {
+const getMatch = asyncHandler(async (req, res) => {             // for admin to get matched results
   if (req.user.role !== "admin") {
     throw new ApiError(403, "Admin access required");
   }
@@ -282,7 +304,77 @@ const getMatch = asyncHandler(async (req, res) => {
 
 });
 
+const getUserMatch = asyncHandler(async (req, res) => {          // for user to get matched results
+  console.log("🎯 Hit /api/user/match route"); 
+  const user = await User.findById(req.user._id)
+    .populate({
+      path: "surveyResult.user", // 👈 correct nested population
+      select: "name email avatar"
+    });
 
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  console.log(user.surveyResult);
+  const matchedUsers = user.surveyResult
+    .filter(match => match.user) // 🛡️ Filter out undefined/null users
+    .map(match => ({
+      _id: match.user._id,
+      name: match.user.name,
+      email: match.user.email,
+      avatar: match.user.avatar
+    }));
+
+  return res.status(200).json(new ApiResponse(200, { matchedUsers }, "Matched users fetched"));
+});
+
+const submitComplaint = async (req, res) => {
+  try {
+    const { issueType, issue } = req.body;
+    const userId = req.user.id; // from auth middleware
+
+    // Validate required fields
+    if (!issueType || !issue) {
+      return res.status(400).json({ message: 'Both issue type and description are required.' });
+    }
+
+    const allowedTypes = [
+      'Inappropriate Behaviour',
+      'Room Condition',
+      'Fake Profile',
+      'Privacy Concerns',
+      'Other'
+    ];
+
+    if (!allowedTypes.includes(issueType)) {
+      throw new ApiError(400, 'Invalid issue type');
+    }
+
+    // Get user email (to embed with complaint)
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(404, 'User not found');
+
+    // Find the admin (assuming only one admin)
+    const admin = await Admin.findOne();
+    if (!admin) throw new ApiError(500, 'Admin record not found');
+
+    // Push complaint to admin's complaintsRegistered array
+    admin.complaintsRegistered.push({
+      issueType,
+      issueDescription: issue,
+      user: user._id,
+      submittedAt: new Date()
+    });
+
+    await admin.save();
+
+    res.status(201).json({ message: 'Complaint submitted successfully.' });
+  } catch (error) {
+    console.error('Error submitting complaint:', error);
+    res.status(error.statusCode || 500).json({ message: error.message || 'Server error. Try again later.' });
+  }
+}
 
 export {
     registerUser,
@@ -293,5 +385,7 @@ export {
     getUser,
     changePassword,
     updateProfile,
-    getMatch
+    getMatch,
+    getUserMatch,
+    submitComplaint
 }

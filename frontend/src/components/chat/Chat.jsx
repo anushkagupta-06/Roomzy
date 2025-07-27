@@ -27,8 +27,9 @@ const Chat = () => {
     // Fetch matched users from backend
     const fetchMatches = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/match`, {
-          credentials: 'include'
+        const res = await fetch("http://localhost:3000/api/users/match", {
+          method: "GET",
+          credentials: "include", // tells browser to send cookies
         });
         const data = await res.json();
         setMatchedUsers(data.matchedUsers); // depends on your backend format
@@ -38,6 +39,11 @@ const Chat = () => {
     };
     fetchMatches();
   }, []);
+
+  const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
+    withCredentials: true, // This tells Socket.IO to send cookies
+    transports: ['websocket'], // Optional: force WebSocket only
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
